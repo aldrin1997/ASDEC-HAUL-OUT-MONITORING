@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './App.css'; 
 import logo from './LOGO.png'; 
-import { Calendar, Camera, Plus, Trash2, Building2, User, LogOut, History, ArrowLeft, Download } from 'lucide-react';
+import { Calendar, Camera, Plus, Trash2, Building2, User, LogOut, History, ArrowLeft, Download, Image as ImageIcon } from 'lucide-react';
 
 function App({ user, onLogout }) {
-  const [projectName, setProjectName] = useState('');
+  // Automatically set project name from user data
+  const [projectName, setProjectName] = useState(user?.project || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [view, setView] = useState('form'); 
   const [submittedReports, setSubmittedReports] = useState([]); 
@@ -21,7 +22,6 @@ function App({ user, onLogout }) {
   const fileInputRef = useRef(null);
   const [activeCapture, setActiveCapture] = useState({ id: null, type: null });
 
-  // ... (getLocation and applyWatermark functions remain the same)
   const getLocation = () => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
@@ -131,14 +131,14 @@ function App({ user, onLogout }) {
       timestamp: new Date().toLocaleString(),
       entries: entries.map(e => ({
         ...e,
-        totalCbm: (e.length * e.width * e.height).toFixed(3)
+        totalCbm: (e.length * e.width * e.height).toFixed(3),
+        savedImages: { ...e.images } // Save images for history cards
       }))
     };
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       setSubmittedReports(prev => [newReport, ...prev]);
       alert("Report Submitted Successfully!");
-      setProjectName('');
       setEntries([{ 
         id: Date.now(), name: '', plate: '', length: 0, width: 0, height: 0, 
         timeIn: '', timeOut: '', 
@@ -150,29 +150,18 @@ function App({ user, onLogout }) {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <div className="app-container">
       <div className="profile-bar">
         <div className="profile-info">
-          {/* UPDATED: Profile Image logic */}
           <div className="avatar" style={{ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '50%', 
-            overflow: 'hidden', 
-            background: '#e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '2px solid #3b82f6'
+            width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', 
+            background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #3b82f6'
           }}>
             {user.faceId ? (
-              <img 
-                src={user.faceId} 
-                alt="Profile" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-              />
+              <img src={user.faceId} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <User size={20} color="#64748b" />
             )}
@@ -183,25 +172,19 @@ function App({ user, onLogout }) {
           </div>
         </div>
         <div className="profile-actions" style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            className="history-btn" 
-            onClick={() => setView(view === 'form' ? 'history' : 'form')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
-          >
+          <button className="history-btn" onClick={() => setView(view === 'form' ? 'history' : 'form')}>
             {view === 'form' ? <><History size={16} /> History</> : <><ArrowLeft size={16} /> Back</>}
           </button>
-          <button className="logout-btn" onClick={onLogout}>
-            <LogOut size={14} />
-          </button>
+          <button className="logout-btn" onClick={onLogout}><LogOut size={14} /></button>
         </div>
       </div>
 
       <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} ref={fileInputRef} onChange={handleCapture} />
 
-      {/* ... (Rest of the component: header, form, and history remain the same) */}
       {view === 'form' ? (
         <>
-          <header className="main-header">
+          {/* ... (Existing Form Code) */}
+<header className="main-header">
             <div className="header-left">
               <img src={logo} alt="ASDEC Logo" className="company-logo-vertical" />
               <div className="title-group">
@@ -217,7 +200,9 @@ function App({ user, onLogout }) {
                   placeholder="Project Name" 
                   className="project-field" 
                   value={projectName} 
-                  onChange={(e) => setProjectName(e.target.value)} 
+                  onChange={(e) => setProjectName(e.target.value)}
+                  readOnly={!!user?.project} // Lock project name if assigned
+                  style={user?.project ? { background: '#f1f5f9', cursor: 'not-allowed' } : {}}
                 />
               </div>
               <div className="date-display-small">
@@ -228,10 +213,7 @@ function App({ user, onLogout }) {
           </header>
 
           <div className="form-card">
-            <div className="description-header desktop-only">
-              <span>HAULER NAME</span><span>PLATE NO.</span><span>LENGTH</span><span>WIDTH</span><span>HEIGHT</span><span className="text-red">TOTAL CBM</span><span>TIME IN / OUT</span><span>ATTACHMENTS</span><span></span>
-            </div>
-
+            {/* Existing Entry Mapping logic remains the same */}
             {entries.map((entry) => {
               const totalCbm = (entry.length * entry.width * entry.height).toFixed(3);
               return (
@@ -275,17 +257,14 @@ function App({ user, onLogout }) {
                 </div>
               );
             })}
-            
-            <button className="add-entry-btn" onClick={addEntry} style={{ marginTop: '15px', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '6px', cursor: 'pointer', color: '#64748b', fontWeight: '600' }}>
-              <Plus size={18} /> ADD NEW HAULER ROW
-            </button>
+            <button className="add-entry-btn" onClick={addEntry}><Plus size={18} /> ADD NEW HAULER ROW</button>
           </div>
-
           <button className={`submit-btn ${isSubmitting ? 'submitting' : ''}`} onClick={handleSubmitReport} disabled={isSubmitting}>
             {isSubmitting ? 'UPLOADING...' : 'SUBMIT VERIFIED REPORT'}
           </button>
         </>
       ) : (
+        /* UPDATED SUBMISSION HISTORY VIEW */
         <div className="history-section" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2>Submission History</h2>
@@ -295,21 +274,20 @@ function App({ user, onLogout }) {
           </div>
 
           <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ padding: '12px' }}>Project</th>
                   <th style={{ padding: '12px' }}>Date/Time</th>
-                  <th style={{ padding: '12px' }}>Hauler</th>
-                  <th style={{ padding: '12px' }}>Plate No.</th>
-                  <th style={{ padding: '12px' }}>Total CBM</th>
-                  <th style={{ padding: '12px' }}>Time In</th>
-                  <th style={{ padding: '12px' }}>Time Out</th>
+                  <th style={{ padding: '12px' }}>Hauler Details</th>
+                  <th style={{ padding: '12px' }}>Dimensions & CBM</th>
+                  <th style={{ padding: '12px' }}>Time In/Out</th>
+                  <th style={{ padding: '12px' }}>Uploaded Images</th>
                 </tr>
               </thead>
               <tbody>
                 {submittedReports.length === 0 ? (
-                  <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No records yet.</td></tr>
+                  <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No records yet.</td></tr>
                 ) : (
                   submittedReports.map((report) => (
                     report.entries.map((entry, idx) => (
@@ -317,14 +295,47 @@ function App({ user, onLogout }) {
                         {idx === 0 ? (
                           <>
                             <td rowSpan={report.entries.length} style={{ padding: '12px', fontWeight: 'bold', verticalAlign: 'top' }}>{report.project}</td>
-                            <td rowSpan={report.entries.length} style={{ padding: '12px', color: '#64748b', verticalAlign: 'top' }}>{report.timestamp}</td>
+                            <td rowSpan={report.entries.length} style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem', verticalAlign: 'top' }}>{report.timestamp}</td>
                           </>
                         ) : null}
-                        <td style={{ padding: '12px' }}>{entry.name}</td>
-                        <td style={{ padding: '12px' }}>{entry.plate}</td>
-                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#dc2626' }}>{entry.totalCbm}</td>
-                        <td style={{ padding: '12px' }}>{entry.timeIn}</td>
-                        <td style={{ padding: '12px' }}>{entry.timeOut}</td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: '600' }}>{entry.name}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Plate: {entry.plate}</div>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontSize: '0.8rem' }}>{entry.length}m x {entry.width}m x {entry.height}m</div>
+                          <div style={{ fontWeight: 'bold', color: '#dc2626' }}>{entry.totalCbm} CBM</div>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontSize: '0.85rem' }}>IN: {entry.timeIn}</div>
+                          <div style={{ fontSize: '0.85rem' }}>OUT: {entry.timeOut}</div>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          {/* NEW: IMAGE CARD SECTION IN HISTORY */}
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            {['entry', 'loading', 'load', 'exit'].map((type) => (
+                              <div key={type} style={{ position: 'relative' }}>
+                                {entry.savedImages && entry.savedImages[type] ? (
+                                  <div style={{ width: '50px', height: '50px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                                    <img 
+                                      src={entry.savedImages[type]} 
+                                      alt={type} 
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} 
+                                      onClick={() => window.open(entry.savedImages[type], '_blank')}
+                                    />
+                                    <span style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '8px', textAlign: 'center' }}>
+                                      {type.toUpperCase()}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div style={{ width: '50px', height: '50px', borderRadius: '4px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #cbd5e1' }}>
+                                    <ImageIcon size={14} color="#94a3b8" />
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
                       </tr>
                     ))
                   ))

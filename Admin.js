@@ -2,12 +2,13 @@ import React, { useState, useRef } from 'react';
 import { UserPlus, Shield, Trash2, ArrowLeft, Camera, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 const Admin = ({ onBack }) => {
+  // Initial state includes the 'project' field
   const [formData, setFormData] = useState({ 
     name: '', 
     username: '', 
     password: '', 
     role: 'Field Staff',
-    project: '' // Added project assignment field
+    project: '' 
   });
   const [users, setUsers] = useState(JSON.parse(localStorage.getItem('asdec_users')) || []);
   
@@ -46,7 +47,7 @@ const Admin = ({ onBack }) => {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       const imageData = canvas.toDataURL('image/jpeg');
-      setFaceDescriptor(imageData); // Store actual image data URL
+      setFaceDescriptor(imageData); // Captures actual image data for the profile
       stopCamera();
     }
   };
@@ -61,6 +62,8 @@ const Admin = ({ onBack }) => {
 
   const handleRegister = (e) => {
     e.preventDefault();
+    
+    // Creates the new user object including the project and face data
     const newUser = { 
       ...formData, 
       id: Date.now(),
@@ -70,8 +73,9 @@ const Admin = ({ onBack }) => {
 
     const updatedUsers = [...users, newUser];
     setUsers(updatedUsers);
-    localStorage.setItem('asdec_users', JSON.stringify(updatedUsers));
+    localStorage.setItem('asdec_users', JSON.stringify(updatedUsers)); // Saves to persistent storage
     
+    // Resets the form including the project field
     setFormData({ name: '', username: '', password: '', role: 'Field Staff', project: '' });
     setFaceDescriptor(null);
     alert('User registered successfully!');
@@ -98,10 +102,10 @@ const Admin = ({ onBack }) => {
             <input type="text" placeholder="Username" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} required />
             <input type="password" placeholder="Password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
             
-            {/* Project Assignment Field */}
+            {/* Project Assignment Input Field */}
             <input 
               type="text" 
-              placeholder="Assign Project Name" 
+              placeholder="Assign Project Name (e.g., Site Alpha)" 
               value={formData.project} 
               onChange={e => setFormData({...formData, project: e.target.value})} 
               required 
@@ -142,7 +146,7 @@ const Admin = ({ onBack }) => {
               )}
             </div>
 
-            <button type="submit" className="submit-btn" style={{ marginTop: '20px', width: '100%', padding: '12px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Complete Registration</button>
+            <button type="submit" className="submit-btn" style={{ marginTop: '20px', width: '100%', padding: '12px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Complete Registration</button>
           </form>
         </section>
 
@@ -152,8 +156,11 @@ const Admin = ({ onBack }) => {
             {users.map(u => (
               <div key={u.id} className="user-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderBottom: '1px solid #f1f5f9' }}>
                 <div>
-                  <strong>{u.name}</strong>
-                  <span style={{ fontSize: '0.8rem', color: '#3b82f6', display: 'block' }}>Project: {u.project}</span>
+                  <strong style={{ display: 'block' }}>{u.name}</strong>
+                  {/* Displays assigned project in the directory */}
+                  <span style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 'bold', display: 'block' }}>
+                    Project: {u.project || 'None Assigned'}
+                  </span>
                   <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{u.username} • {u.role}</span>
                 </div>
                 <button onClick={() => deleteUser(u.id)} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
